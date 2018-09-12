@@ -25,11 +25,11 @@ int HelpApp::exec(const std::vector<std::string>& args) {
         }
     }
 
-    return 0;
+    return STATUS_OK;
 }
 
 const char* HelpApp::getStatusCodeDescription(int statusCode) {
-    return (statusCode == 0) ? "OK" : "Invalid status code";
+    return (statusCode == STATUS_OK) ? "OK" : "Invalid status code";
 }
 
 const char* HelpApp::getHelp() {

@@ -23,6 +23,7 @@ class Console {
         std::string getVariable(const std::string& name, const std::string& defaultValue = "") const;
         void setVariable(const std::string& name, const std::string& value);
         const std::map<std::string, IApp*>& getApps() const;
+        const std::map<std::string, std::string>& getAllVariables() const;
 
     private:
         std::map<std::string, IApp*> apps_;
