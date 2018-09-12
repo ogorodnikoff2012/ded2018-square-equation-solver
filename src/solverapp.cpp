@@ -2,6 +2,10 @@
 #include <iostream>
 #include <complex>
 #include <limits>
+#include <cstdlib>
+#include <cerrno>
+#include <cstring>
+#include <mod_arith.h>
 
 static bool isPrime(int n) {
     if (n < 2) {
@@ -25,6 +29,34 @@ double SolverApp::parse<double>(const std::string& input) const {
     return std::stod(input);
 }
 
+
+
+template <>
+std::complex<double> SolverApp::parse<std::complex<double>>(const std::string& input) const {
+    std::array<double, 2> vals;
+    const char* strBegin = input.c_str();
+    char* strEnd;
+
+    for (int i = 0; i < 2; ++i) {
+        vals[i] = std::strtod(strBegin, &strEnd);
+        if (errno == ERANGE || strEnd == strBegin) {
+            throw std::invalid_argument("Parse error");
+        } else {
+            strBegin = strEnd;
+        }
+    }
+
+    if (std::strcmp(strBegin, "i")) {
+        throw std::invalid_argument("Parse error");
+    }
+    return std::complex<double>(vals[0], vals[1]);
+}
+
+template <>
+Residue SolverApp::parse<Residue>(const std::string& input, const int modulo) const {
+    return Residue(std::stoul(input), modulo);
+}
+
 template <class Field>
 bool SolverApp::isZero(const Field&) const {
     throw std::runtime_error("Cannot compare to zero");
@@ -33,6 +65,16 @@ bool SolverApp::isZero(const Field&) const {
 template <>
 bool SolverApp::isZero(const double& x) const {
     return std::abs(x) < std::numeric_limits<double>::epsilon();
+}
+
+template <>
+bool SolverApp::isZero(const std::complex<double>& x) const {
+    return isZero(x.real()) && isZero(x.imag());
+}
+
+template <>
+bool SolverApp::isZero(const Residue& x) const {
+    return x == 0;
 }
 
 template <class Field>
@@ -47,6 +89,19 @@ std::vector<double> SolverApp::squareRoot(const double& x) const {
         result.push_back(0);
     } else if (x > 0) {
         double sqrt = std::sqrt(x);
+        result.push_back(sqrt);
+        result.push_back(-sqrt);
+    }
+    return result;
+}
+
+template <>
+std::vector<std::complex<double>> SolverApp::squareRoot(const std::complex<double>& x) const {
+    std::vector<std::complex<double>> result;
+    if (isZero(x)) {
+        result.push_back(0);
+    } else {
+        std::complex<double> sqrt = std::sqrt(x);
         result.push_back(sqrt);
         result.push_back(-sqrt);
     }
@@ -123,7 +178,7 @@ int SolverApp::exec(const std::vector<std::string>& args) {
             if (!isPrime(modulo)) {
                 throw std::invalid_argument("is not prime!");
             }
-            return parseSolveAndPrint<int>(args, modulo);
+            return parseSolveAndPrint<Residue>(args, modulo);
         } catch (std::invalid_argument& exp) {
             return STATUS_BAD_FIELD;
         } catch (std::out_of_range& exp) {
