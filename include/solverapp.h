@@ -16,11 +16,11 @@ class SolverApp : public IApp {
         template <class Field>
         bool isZero(const Field& x) const;
 
-        template <class Field, class... Args>
-        Field parse(const std::string& input, Args... args) const;
+        template <class Field>
+        Field parse(const std::string& input) const;
         
         template <class Field>
-        std::vector<Field> solve(const std::array<Field, 3>& coefficients, bool* isDegenerateEquation) const;
+        std::vector<Field> solveSquare(const std::array<Field, 3>& coefficients, bool* isDegenerateEquation) const;
 
         template <class Field>
         std::vector<Field> solveLinear(const Field& k, const Field& b, bool* isDegenerateEquation) const;
@@ -28,7 +28,7 @@ class SolverApp : public IApp {
         template <class Field>
         std::vector<Field> squareRoot(const Field& x) const;
 
-        template <class Field, class... Args>
-        int parseSolveAndPrint(const std::vector<std::string>& input, Args... args) const;
+        template <class Field>
+        int parseSolveAndPrint(const std::vector<std::string>& input) const;
         const Console* parent_;
 };

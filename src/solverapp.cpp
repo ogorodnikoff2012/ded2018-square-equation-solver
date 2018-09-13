@@ -5,22 +5,9 @@
 #include <cstdlib>
 #include <cerrno>
 #include <cstring>
-#include <mod_arith.h>
 
-static bool isPrime(int n) {
-    if (n < 2) {
-        return false;
-    }
-    for (int i = 2; i * i <= n; ++i) {
-        if (n % i == 0) {
-            return false;
-        }
-    }
-    return true;
-}
-
-template <class Field, class... Args>
-Field SolverApp::parse(const std::string&, Args...) const {
+template <class Field>
+Field SolverApp::parse(const std::string&) const {
     throw std::runtime_error("Appropriate parser not found");
 }
 
@@ -28,8 +15,6 @@ template <>
 double SolverApp::parse<double>(const std::string& input) const {
     return std::stod(input);
 }
-
-
 
 template <>
 std::complex<double> SolverApp::parse<std::complex<double>>(const std::string& input) const {
@@ -52,11 +37,6 @@ std::complex<double> SolverApp::parse<std::complex<double>>(const std::string& i
     return std::complex<double>(vals[0], vals[1]);
 }
 
-template <>
-Residue SolverApp::parse<Residue>(const std::string& input, const int modulo) const {
-    return Residue(std::stoul(input), modulo);
-}
-
 template <class Field>
 bool SolverApp::isZero(const Field&) const {
     throw std::runtime_error("Cannot compare to zero");
@@ -72,38 +52,26 @@ bool SolverApp::isZero(const std::complex<double>& x) const {
     return isZero(x.real()) && isZero(x.imag());
 }
 
-template <>
-bool SolverApp::isZero(const Residue& x) const {
-    return x == 0;
+template <class Field>
+static bool isValid(const Field&) {
+    return true;
+}
+
+static bool isValid(double x) {
+    return x == x; // check if x is NaN
 }
 
 template <class Field>
-std::vector<Field> SolverApp::squareRoot(const Field&) const {
-    throw std::runtime_error("Cannot take square root");
-}
-
-template <>
-std::vector<double> SolverApp::squareRoot(const double& x) const {
-    std::vector<double> result;
-    if (isZero(x)) {
-        result.push_back(0);
-    } else if (x > 0) {
-        double sqrt = std::sqrt(x);
-        result.push_back(sqrt);
-        result.push_back(-sqrt);
-    }
-    return result;
-}
-
-template <>
-std::vector<std::complex<double>> SolverApp::squareRoot(const std::complex<double>& x) const {
-    std::vector<std::complex<double>> result;
+std::vector<Field> SolverApp::squareRoot(const Field& x) const {
+    std::vector<Field> result;
     if (isZero(x)) {
         result.push_back(0);
     } else {
-        std::complex<double> sqrt = std::sqrt(x);
-        result.push_back(sqrt);
-        result.push_back(-sqrt);
+        Field sqrt = std::sqrt(x);
+        if (isValid(sqrt)) {
+            result.push_back(sqrt);
+            result.push_back(-sqrt);
+        }
     }
     return result;
 }
@@ -120,7 +88,7 @@ std::vector<Field> SolverApp::solveLinear(const Field& k, const Field& b, bool* 
 }
 
 template <class Field>
-std::vector<Field> SolverApp::solve(const std::array<Field, 3>& coefficients, bool* isDegenerateEquation) const {
+std::vector<Field> SolverApp::solveSquare(const std::array<Field, 3>& coefficients, bool* isDegenerateEquation) const {
     if (isZero(coefficients[0])) {
         return solveLinear(coefficients[1], coefficients[2], isDegenerateEquation);
     }
@@ -135,19 +103,19 @@ std::vector<Field> SolverApp::solve(const std::array<Field, 3>& coefficients, bo
     return result;
 }
 
-template <class Field, class... Args>
-int SolverApp::parseSolveAndPrint(const std::vector<std::string>& input, Args... args) const {
+template <class Field>
+int SolverApp::parseSolveAndPrint(const std::vector<std::string>& input) const {
     std::array<Field, 3> coefficients;
     try {
         for (int i = 0; i < 3; ++i) {
-            coefficients[i] = parse<Field>(input[1 + i], args...);
+            coefficients[i] = parse<Field>(input[1 + i]);
         }
     } catch (std::invalid_argument& exp) {
         return STATUS_PARSE_ERROR;
     }
 
     bool isDegenerateEquation = false;
-    auto solution = solve(coefficients, &isDegenerateEquation);
+    auto solution = solveSquare(coefficients, &isDegenerateEquation);
 
     if (isDegenerateEquation) {
         std::cout << "Equation is degenerate: every value is its solution\n";
@@ -171,19 +139,6 @@ int SolverApp::exec(const std::vector<std::string>& args) {
         return parseSolveAndPrint<double>(args);
     } else if (fieldCode == "C") {
         return parseSolveAndPrint<std::complex<double>>(args);
-    } else if (fieldCode[0] == 'Z' && fieldCode[1] == '_') {
-        int modulo;
-        try {
-            modulo = std::stoi(fieldCode.substr(2));
-            if (!isPrime(modulo)) {
-                throw std::invalid_argument("is not prime!");
-            }
-            return parseSolveAndPrint<Residue>(args, modulo);
-        } catch (std::invalid_argument& exp) {
-            return STATUS_BAD_FIELD;
-        } catch (std::out_of_range& exp) {
-            return STATUS_BAD_FIELD;
-        }
     }
 
     return STATUS_BAD_FIELD;
@@ -212,7 +167,5 @@ const char* SolverApp::getHelp() {
             "following values (type 'set field <one-of-these-values>'):\n"
             " R - Real numbers ('double' in C++)\n"
             " C - Complex numbers ('std::complex<double>' in C++; it's just a pair of doubles)\n"
-            " Z_p (e.g. Z_2, Z_17, etc) - ring of integers modulo p (Z/pZ).\n"
-            "Notice: p should be prime integer; otherwise, Z_p wouldn't be a field.\n"
             "If variable \"field\" is not set, real numbers are used by default.";
 }
