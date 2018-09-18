@@ -8,9 +8,9 @@ int GetterApp::exec(const std::vector<std::string>& args) {
     bool needToPrintName = args.size() > 2;
     for (auto iter = args.begin() + 1; iter != args.end(); ++iter) {
         if (needToPrintName) {
-            std::cout << *iter << ": ";
+            parent_->output() << *iter << ": ";
         }
-        std::cout << parent_->getVariable(*iter, "") << std::endl;
+        parent_->output() << parent_->getVariable(*iter, "") << std::endl;
     }
     return STATUS_OK;
 }

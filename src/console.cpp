@@ -3,10 +3,58 @@
 #include <iomanip>
 #include <sstream>
 
-Console::Console() {
-}
+class NullOutputStream : public std::ostream {
+    public:
+        NullOutputStream() { }
+        template <class T>
+        NullOutputStream& operator <<(T&&) {
+            return *this;
+        }
+};
+
+static NullOutputStream devNull;
 
 Console::~Console() {
+}
+
+std::ostream& Console::output() const {
+    return out_;
+}
+
+std::ostream& Console::log(Verbosity verbosity, const char* prompt) const {
+    if (verbosity >= getVerbosity()) {
+        return out_ << prompt;
+    } else {
+        return devNull;
+    }
+}
+
+std::ostream& Console::debug() const {
+    return log(VERB_DEBUG, "# [DEBUG] ");
+}
+
+std::ostream& Console::info() const {
+    return log(VERB_INFO, "# [INFO ] ");
+}
+
+
+std::ostream& Console::error() const {
+    return log(VERB_ERROR, "# [ERROR] ");
+}
+
+std::istream& Console::input() const {
+    return in_;
+}
+
+
+Verbosity Console::getVerbosity() const {
+    std::string str = getVariable("verbosity", "DEBUG");
+    if (str == "ERROR") {
+        return VERB_ERROR;
+    } else if (str == "INFO") {
+        return VERB_INFO;
+    }
+    return VERB_DEBUG;
 }
 
 static std::vector<std::string> tokenize(std::string&& input) {
@@ -21,12 +69,14 @@ static std::vector<std::string> tokenize(std::string&& input) {
 }
 
 int Console::exec(int /*argc*/, char* /*argv*/[]) {
-    std::cout << "## Square equation solver\n## by Vladimir Ogorodnikov, 2018\n## Type \"help\" for more information\n";
+    info() << "Square equation solver\n";
+    info() << "by Vladimir Ogorodnikov, 2018\n";
+    info() << "Type \"help\" for more information\n";
 
     std::string input;
     while (true) {
-        std::cout << getVariable("PS1", "> ");
-        if (!std::getline(std::cin, input)) {
+        log(VERB_INFO, getVariable("PS1", "> ").c_str());
+        if (!std::getline(this->input(), input)) {
             break;
         }
         std::vector<std::string> tokens = tokenize(std::move(input));
@@ -38,17 +88,17 @@ int Console::exec(int /*argc*/, char* /*argv*/[]) {
         }
         auto appIter = apps_.find(tokens[0]);
         if (appIter == apps_.end()) {
-            std::cout << "# [ERROR] No such app: " << tokens[0] << '\n';
+            error() << "No such app: " << tokens[0] << '\n';
         } else {
             IApp* app = appIter->second;
             int statusCode = app->exec(tokens);
             if (statusCode != IApp::STATUS_OK) {
-                std::cout << "# [ERROR] Status code " << statusCode << ": " << app->getStatusCodeDescription(statusCode) << std::endl;
+                error() << "Status code " << statusCode << ": " << app->getStatusCodeDescription(statusCode) << std::endl;
             }
             setVariable("status", std::to_string(statusCode));
         }
     }
-    std::cout << "Bye!\n";
+    info() << "Bye!\n";
     return 0;
 }
 

@@ -14,17 +14,14 @@ class SolverApp : public IApp {
         virtual const char* getHelp();
     private:
         template <class Field>
-        bool isZero(const Field& x) const;
+        Field parse(const std::string& input, bool* ok = nullptr) const;
 
-        template <class Field>
-        Field parse(const std::string& input) const;
-        
         template <class Field>
         std::vector<Field> solveSquare(const std::array<Field, 3>& coefficients, bool* isDegenerateEquation) const;
 
         template <class Field>
         std::vector<Field> solveLinear(const Field& k, const Field& b, bool* isDegenerateEquation) const;
-        
+
         template <class Field>
         std::vector<Field> squareRoot(const Field& x) const;
 

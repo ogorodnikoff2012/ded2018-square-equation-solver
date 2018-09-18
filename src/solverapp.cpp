@@ -6,49 +6,60 @@
 #include <cerrno>
 #include <cstring>
 
+#define OPT_PTR(type, x) static type default_##x##_var; if ( x == nullptr ) x = &default_##x##_var;
+
 template <class Field>
-Field SolverApp::parse(const std::string&) const {
-    throw std::runtime_error("Appropriate parser not found");
+Field SolverApp::parse(const std::string&, bool*) const {
+    return std::declval<Field>();
+}
+
+static inline double parseDouble(const char* begin, char** end, bool* ok) {
+    double val = std::strtod(begin, end);
+    *ok = *end != begin;
+    return val;
 }
 
 template <>
-double SolverApp::parse<double>(const std::string& input) const {
-    return std::stod(input);
+double SolverApp::parse<double>(const std::string& input, bool* ok) const {
+    OPT_PTR(bool, ok);
+    char* ptrEnd;
+    return parseDouble(input.c_str(), &ptrEnd, ok);
 }
 
 template <>
-std::complex<double> SolverApp::parse<std::complex<double>>(const std::string& input) const {
+std::complex<double> SolverApp::parse<std::complex<double>>(const std::string& input, bool* ok) const {
+    OPT_PTR(bool, ok);
     std::array<double, 2> vals;
     const char* strBegin = input.c_str();
     char* strEnd;
 
-    for (int i = 0; i < 2; ++i) {
-        vals[i] = std::strtod(strBegin, &strEnd);
-        if (errno == ERANGE || strEnd == strBegin) {
-            throw std::invalid_argument("Parse error");
+    vals[0] = parseDouble(strBegin, &strEnd, ok);
+    if (!*ok) {
+        return {0, 0};
+    }
+    strBegin = strEnd;
+
+    vals[1] = parseDouble(strBegin, &strEnd, ok);
+    if (*ok) {
+        return {vals[0], vals[1]};
+    } else {
+        *ok = true;
+        if (std::strcmp(strBegin, "j") == 0) {
+            return {0, vals[0]};
+        } else if (strBegin[0] == '\0') {
+            return {vals[0], 0};
         } else {
-            strBegin = strEnd;
+            *ok = false;
+            return {0, 0};
         }
     }
-
-    if (std::strcmp(strBegin, "i")) {
-        throw std::invalid_argument("Parse error");
-    }
-    return std::complex<double>(vals[0], vals[1]);
 }
 
-template <class Field>
-bool SolverApp::isZero(const Field&) const {
-    throw std::runtime_error("Cannot compare to zero");
-}
-
-template <>
-bool SolverApp::isZero(const double& x) const {
+static bool isZero(const double& x) {
     return std::abs(x) < std::numeric_limits<double>::epsilon();
 }
 
-template <>
-bool SolverApp::isZero(const std::complex<double>& x) const {
+static bool isZero(const std::complex<double>& x) {
     return isZero(x.real()) && isZero(x.imag());
 }
 
@@ -103,28 +114,52 @@ std::vector<Field> SolverApp::solveSquare(const std::array<Field, 3>& coefficien
     return result;
 }
 
+inline std::ostream& operator <<(std::ostream& out, const std::complex<double>& val) {
+    if (isZero(val)) {
+        return out << '0';
+    }
+
+    if (!isZero(val.real())) {
+        out << val.real();
+    }
+
+    if (!isZero(val.imag())) {
+        if (!isZero(val.real()) && val.imag() > 0) {
+            out << '+';
+        }
+        out << val.imag();
+        out << 'j';
+    }
+    return out;
+}
+
 template <class Field>
 int SolverApp::parseSolveAndPrint(const std::vector<std::string>& input) const {
     std::array<Field, 3> coefficients;
-    try {
-        for (int i = 0; i < 3; ++i) {
-            coefficients[i] = parse<Field>(input[1 + i]);
+    for (int i = 0; i < 3; ++i) {
+        bool ok = true;
+        coefficients[i] = parse<Field>(input[1 + i], &ok);
+        if (!ok) {
+            return STATUS_PARSE_ERROR;
         }
-    } catch (std::invalid_argument& exp) {
-        return STATUS_PARSE_ERROR;
     }
 
     bool isDegenerateEquation = false;
     auto solution = solveSquare(coefficients, &isDegenerateEquation);
 
     if (isDegenerateEquation) {
-        std::cout << "Equation is degenerate: every value is its solution\n";
+        parent_->info() << "Equation is degenerate: every value is its solution\n";
     } else {
-        std::cout << "Equation has " << solution.size() << " solutions:\n";
+        parent_->info() << "Equation has " << solution.size() << " solution" << (solution.size() == 1 ? "" : "s") << ":\n";
+        bool first = true;
         for (auto iter = solution.begin(); iter != solution.end(); ++iter) {
-            std::cout << *iter << ' ';
+            if (!first) {
+                parent_->output() << ' ';
+            }
+            first = false;
+            parent_->output() << *iter;
         }
-        std::cout << std::endl;
+        parent_->output() << std::endl;
     }
     return STATUS_OK;
 }
