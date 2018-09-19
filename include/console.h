@@ -90,6 +90,10 @@ class Console {
          * */
         const std::map<std::string, std::string>& getAllVariables() const;
 
+        /** Устанавливает синоним команде
+         * */
+        void addAlias(const std::string& newName, const std::string& oldName);
+
     private:
         std::ostream& out_;
         std::istream& in_;

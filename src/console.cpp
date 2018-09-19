@@ -2,6 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <algorithm>
 
 class NullOutputStream : public std::ostream {
     public:
@@ -15,6 +16,18 @@ class NullOutputStream : public std::ostream {
 static NullOutputStream devNull;
 
 Console::~Console() {
+    std::vector<IApp*> ptrs;
+    ptrs.reserve(apps_.size());
+    for (const auto& app : apps_) {
+        ptrs.push_back(app.second);
+    }
+
+    std::sort(ptrs.begin(), ptrs.end());
+    ptrs.erase(std::unique(ptrs.begin(), ptrs.end()), ptrs.end());
+
+    for (IApp* ptr : ptrs) {
+        delete ptr;
+    }
 }
 
 std::ostream& Console::output() const {
@@ -68,6 +81,15 @@ static std::vector<std::string> tokenize(std::string&& input) {
     return result;
 }
 
+static inline bool isComment(const std::string& input) {
+    auto begin = input.begin();
+    auto end = input.end();
+    while (begin != end && std::isspace(*begin)) {
+        ++begin;
+    }
+    return begin == end || *begin == '#';
+}
+
 int Console::exec(int argc, char* argv[]) {
     info() << "Square equation solver\n";
     info() << "by Vladimir Ogorodnikov, 2018\n";
@@ -87,6 +109,11 @@ int Console::exec(int argc, char* argv[]) {
         if (!std::getline(this->input(), input)) {
             break;
         }
+
+        if (isComment(input)) {
+            continue;
+        }
+
         std::vector<std::string> tokens = tokenize(std::move(input));
         if (tokens.empty()) {
             continue;
@@ -129,4 +156,8 @@ const std::map<std::string, IApp*>& Console::getApps() const {
 
 const std::map<std::string, std::string>& Console::getAllVariables() const {
     return variables_;
+}
+
+void Console::addAlias(const std::string& newName, const std::string& oldName) {
+    apps_[newName] = apps_[oldName];
 }

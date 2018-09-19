@@ -8,6 +8,15 @@
 #include <fstream>
 #include <iostream>
 
+static const char* HELP_TEXT =
+"Square Equation Solver by Vladimir Ogorodnikov, 2018\n"
+"Usage: %s [-h] [-o filename]  [-q] [-i | filename] [args...]\n"
+"   -o filename -- write output to file 'filename' instead of stdout\n"
+"   -q          -- quiet mode (set 'verbosity' variable to 'ERROR')\n"
+"   -i          -- interactive mode (use it to prevent treating first argument as filename)\n"
+"   -h          -- print this help\n"
+"All other arguments are passed as variables 'arg1', 'arg2', ... and so on. Number of arguments is stored in 'nargs'.\n";
+
 int main(int argc, char* argv[]) {
     int currentArg = 1;
     bool quiet = false;
@@ -27,6 +36,9 @@ int main(int argc, char* argv[]) {
             quiet = true;
         } else if (std::strcmp(argv[currentArg], "-i") == 0) {
             interactive = true;
+        } else if (std::strcmp(argv[currentArg], "-h") == 0) {
+            std::printf(HELP_TEXT, argv[0]);
+            return 0;
         } else {
             break;
         }
@@ -76,5 +88,6 @@ int main(int argc, char* argv[]) {
     console.emplaceApp<SetterApp>("set");
     console.emplaceApp<GetterApp>("get");
     console.emplaceApp<SolverApp>("solve");
+    console.addAlias("?", "help");
     return console.exec(argc - currentArg - 1, argv + currentArg);
 }
