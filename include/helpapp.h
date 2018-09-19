@@ -3,6 +3,8 @@
 #include <app.h>
 #include <console.h>
 
+/** Приложение, выводящее на экран справочную информацию
+ * */
 class HelpApp : public IApp {
     public:
         explicit HelpApp(const Console* parent) : parent_(parent) {}

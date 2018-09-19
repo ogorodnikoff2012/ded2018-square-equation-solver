@@ -5,8 +5,11 @@
 
 class SolverApp : public IApp {
     public:
+        /** Аргументы не соответствуют требуемуемому формату */
         static constexpr int STATUS_BAD_ARGUMENTS = 1;
+        /** Значение переменной ```field``` некорректно (см. \ref Console) */
         static constexpr int STATUS_BAD_FIELD = 2;
+        /** Не удалось обработать входные данные */
         static constexpr int STATUS_PARSE_ERROR = 3;
         SolverApp(const Console* parent) : parent_(parent) {}
         virtual int exec(const std::vector<std::string>& args);

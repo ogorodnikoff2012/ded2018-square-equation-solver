@@ -68,10 +68,18 @@ static std::vector<std::string> tokenize(std::string&& input) {
     return result;
 }
 
-int Console::exec(int /*argc*/, char* /*argv*/[]) {
+int Console::exec(int argc, char* argv[]) {
     info() << "Square equation solver\n";
     info() << "by Vladimir Ogorodnikov, 2018\n";
     info() << "Type \"help\" for more information\n";
+
+    setVariable("nargs", std::to_string(argc));
+
+    for (int i = 0; i < argc; ++i) {
+        std::string name = "arg";
+        name += (i + 1);
+        setVariable(name, argv[i]);
+    }
 
     std::string input;
     while (true) {
