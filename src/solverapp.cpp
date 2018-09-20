@@ -15,7 +15,7 @@ Field SolverApp::parse(const std::string&, bool*) const {
 
 static inline double parseDouble(const char* begin, char** end, bool* ok) {
     double val = std::strtod(begin, end);
-    *ok = *end != begin;
+    *ok = (*end != begin);
     return val;
 }
 

@@ -75,8 +75,8 @@ int main(int argc, char* argv[]) {
     }
 
     if (!ioOK) {
-        delete in;
-        delete out;
+        if (in != &std::cin) { delete in; }
+        if (out != &std::cout) { delete out; }
         return 1;
     }
 
@@ -89,5 +89,5 @@ int main(int argc, char* argv[]) {
     console.emplaceApp<GetterApp>("get");
     console.emplaceApp<SolverApp>("solve");
     console.addAlias("?", "help");
-    return console.exec(argc - currentArg - 1, argv + currentArg);
+    return console.exec(argc - currentArg, argv + currentArg);
 }
