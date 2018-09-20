@@ -99,7 +99,7 @@ int Console::exec(int argc, char* argv[]) {
 
     for (int i = 0; i < argc; ++i) {
         std::string name = "arg";
-        name += (i + 1);
+        name += std::to_string(i + 1);
         setVariable(name, argv[i]);
     }
 
